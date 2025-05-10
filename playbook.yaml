@@ -1,0 +1,57 @@
+---
+
+- name: Install MySQL
+  hosts: webservergrp
+  become: true
+  gather_facts: true
+  vars:
+    mysql_user: root
+    mysql_password: 12345
+  tasks:
+    - name: Install MySQL
+      package:
+        name: mysql-server
+        state: present
+    - name: add python mysql db
+      package:
+        name: python3-mysqldb
+        state: present
+
+
+- name: Configure MySQL
+  hosts: webservergrp
+  tasks:
+    - name: Configure my.cnf
+      copy: src=./files/my.cnf
+            dest=/etc/mysql/my.cnf
+            owner=root
+            group=root
+      notify:
+        - restart mysql
+    
+    - name: Add mysql-user
+      mysql_user:
+        login_user: root
+        login_password: ""
+        name: root
+        host: localhost
+        state: present
+        check_implicit_admin: true
+      ignore_errors: true
+      notify:
+        - start mysql
+
+  handlers:
+    - name: start mysql
+      service: name=mysql
+               enabled=yes
+               state=started
+    - name: restart mysql
+      service: name=mysql
+               enabled=yes
+               state=restarted
+
+
+
+# /sbin/iptables -A INPUT -i eth0 -s 192.168.33.0/24 -p tcp --destination-port 3306 -j ACCEPT
+# service iptables save
